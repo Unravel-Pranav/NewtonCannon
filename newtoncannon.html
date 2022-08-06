@@ -1,0 +1,118 @@
+<html>
+
+<head>
+											<title>Newton's Cannon</title>
+</head>
+
+<body style="font-family: sans-serif; font-size:15px; width:600px; margin-left:auto; margin-right:auto;background-color:#8FBDD3;">
+
+<div style="width:500px; margin-left:auto; margin-right:auto;">
+	<h1 style="text-align:center; font-size:24px; margin-bottom:6px; color: darkred;">Newton&rsquo;s Cannon</h1>
+	<div style="position:relative;">
+		
+		<img src="NewtonDrawing.jpg" style="position: absolute;">
+		<canvas id="backgroundCanvas" width="500" height="500" style="position: absolute; left: 0; top: 0;z-index: 1;"></canvas>
+		<canvas id="foregroundCanvas" width="500" height="500" style="position: relative; left: 0; top: 0;z-index: 2;"></canvas>
+	</div>
+	<div style="text-align:center">
+		Initial speed = <span id="speedReadout" style="display:inline-block; width:2.2em;">3000</span> m/s
+		<input id="speedSlider" type="range" min="0" max="8000" step="100" value="3000"
+				onchange="showSpeed()" oninput="showSpeed()" style="width:200px;">
+	</div>
+	<div style="text-align:center">
+		<input type="button" value="Fire!" onclick="fireProjectile();" style="font-size:150%">
+		<input type="button" value="Clear" onclick="clearTrails();" style="font-size:150%">
+		
+	</div>
+
+	<h3>This interactive HTML5 simulation is based on a 
+	<a href="http://en.wikipedia.org/wiki/Newton%27s_cannonball">thought experiment</a> and illustration 
+	from Isaac Newton's <a href="http://books.google.com/books?id=DXE9AAAAcAAJ"><i>A Treatise of the System of the World.</i></a>
+	 The simulated experiment shows how the motion of a familiar projectile like
+	a cannon ball is fundamentally the same as the orbit of a celestial body like the moon.</h3>
+	
+
+
+<script>
+
+	// Global variables:
+	var backgroundCanvas = document.getElementById("backgroundCanvas");
+	var backgroundContext = backgroundCanvas.getContext("2d");
+	var foregroundCanvas = document.getElementById("foregroundCanvas");
+	var foregroundContext = foregroundCanvas.getContext("2d");
+	var speedSlider = document.getElementById("speedSlider");
+	var speedReadout = document.getElementById("speedReadout");
+	var newtonG = 6.67e-11;			// gravitational constant in SI units
+	var earthMass = 5.97e24;		// kilograms
+	var earthRadius = 6371000;		// meters
+	var metersPerPixel = earthRadius * 2 / (0.71 * backgroundCanvas.width);		// draw earth @ 71% canvas width to match image
+	var mountainHeight = earthRadius * 0.165;	// chosen to match image
+	var x = 0;						// position of projectile
+	var y = earthRadius + mountainHeight;
+	var vx, vy;						// velocity of projectile
+	var dt = 5;						// time step in seconds
+	var timer;						// used for scheduling next call to moveProjectile
+
+	// Function to fire projectile:
+	function fireProjectile() {
+		window.clearTimeout(timer);
+		x = 0;
+		y = earthRadius + mountainHeight;
+		vx = Number(speedSlider.value);
+		vy = 0;
+		moveProjectile();
+	}
+
+	// Function to move the projectile:
+	function moveProjectile() {
+		var r = Math.sqrt(x*x + y*y);
+		if (r > earthRadius) {
+			var accel = newtonG * earthMass / (r * r);		// magnitude of the acceleration
+			var ax = - accel * x / r;
+			var ay = - accel * y / r;
+			vx += ax * dt;
+			vy += ay * dt;
+			var lastx = x;			// so we can test for full orbit
+			x += vx * dt;
+			y += vy * dt;			// Euler-Cromer algorithm
+			drawProjectile();
+			if (!((lastx < 0) && (x > 0))) {
+				timer = window.setTimeout(moveProjectile, 1000/120);	// delay is in milliseconds
+			} 
+		}
+	}
+		 
+		
+	// Function to clear the background image:
+	function clearTrails() {
+		backgroundContext.clearRect(0, 0, backgroundCanvas.width, backgroundCanvas.height);
+	}
+	
+	// Function to draw the projectile and its trail:
+	function drawProjectile() {
+		// Draw a small dot to represent the projectile:
+		var centerX = backgroundCanvas.width / 2;
+		var centerY = backgroundCanvas.height / 2;
+		var pixelX = centerX + x/metersPerPixel;
+		var pixelY = centerY - y/metersPerPixel;		// measured down from top
+		backgroundContext.fillStyle = "blue";
+		backgroundContext.fillRect(pixelX-0.5, pixelY-0.5, 1, 1);
+		foregroundContext.fillStyle = "red";
+		foregroundContext.clearRect(0, 0, foregroundCanvas.width, foregroundCanvas.height);
+		foregroundContext.beginPath();
+		foregroundContext.arc(pixelX, pixelY, 5, 0, 2*Math.PI);
+		foregroundContext.fill();
+	}
+
+	// Function to display the speed readout:
+	function showSpeed() {
+		speedReadout.innerHTML = speedSlider.value;
+	}
+
+
+</script>
+
+</body>
+
+</html> 
+		
